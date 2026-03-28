@@ -1,0 +1,10 @@
+*.DS_Store
+*.pyc
+.env
+db.sqlite3
+__pycache__/
+staticfiles/
+.claude/
+tests/
+test_db/
+checklist/

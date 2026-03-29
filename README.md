@@ -13,10 +13,43 @@ A REST API built with Django REST Framework over the [MySQL Employees sample dat
 ### Smart Pagination
 Automatically selects the pagination strategy based on table size:
 
-- Tables with **≤ 10,000 rows** → offset-based pagination (`StandardPagination`)
-- Tables with **> 10,000 rows** → cursor-based pagination (`DynamicCursorPagination`)
+| Table size | Class | Strategy |
+|------------|-------|----------|
+| ≤ 10,000 rows | `StandardPagination` | Offset-based; response includes `count` and `last_page` |
+| > 10,000 rows | `HybridPagination` | Cursor-based by default; supports page jumps (see below) |
 
-Row count is cached for 5 minutes to avoid redundant queries. Page size is configurable via `?page_size=`.
+Row count is cached for 5 minutes to avoid redundant queries. Page size is configurable via `?page_size=`. An explicit `pagination_class` on a viewset overrides auto-detection.
+
+#### HybridPagination — cursor + page-jump combined
+
+Large tables use `HybridPagination`, which supports two mutually exclusive modes per request:
+
+**Cursor mode** (default) — pure cursor navigation, no `OFFSET` cost:
+```
+GET /employees/                   → first page; next/previous are cursor URLs
+GET /employees/?cursor=<token>    → navigate sequentially
+```
+
+**Page-jump mode** — `?page=<N>` jumps to any page via a single `OFFSET` query, then hands off to cursor:
+```
+GET /employees/?page=50           → jumps to page 50
+```
+
+After a page jump, `next` and `previous` in the response carry cursor tokens — so all subsequent navigation is cursor-based and incurs no further `OFFSET` cost.
+
+**Priority rule:** if both `?cursor` and `?page` appear in the same request, cursor mode wins.
+
+Response shape is consistent across both modes:
+```json
+{
+  "count":     null,
+  "last_page": null,
+  "next":      "https://host/employees/?cursor=eyJwIjo...",
+  "previous":  null,
+  "results":   [...]
+}
+```
+`count` and `last_page` are always `null` for cursor-based responses because computing a total count on large tables is expensive.
 
 ### N+1 Prevention with `select_related`
 Viewsets declare `select_related` fields explicitly. The base viewset applies them automatically in `get_queryset()`, keeping views clean and queries efficient.

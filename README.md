@@ -59,7 +59,7 @@ All `employees_app` models route to the MySQL `employees` database. Auth and ses
 
 ### Reusable Base Classes
 - **`BaseModelViewSet`** — configurable viewset with filtering, searching, ordering, select_related, and auto-pagination built in
-- **`BaseFilterSet`** — helper methods for range and date-range filters, used across all FilterSet classes
+- **`BaseFilterSet`** — helper methods for range and date-range filters, plus a built-in `?search=` filter that matches any word case-insensitively across all text fields on the model and one FK-level deep (e.g. `dept_name` via the `dept_no` relation), used across all FilterSet classes
 
 ### Settings Split
 | Module | Purpose |
@@ -76,18 +76,22 @@ All endpoints support filtering, searching, ordering, and pagination.
 | Endpoint | Resource |
 |----------|----------|
 | `GET /employees/` | Employee records |
+| `GET /employees/summary/` | Employees with current salary, title, and department history (read-only) |
 | `GET /departments/` | Department records |
 | `GET /dept-emp/` | Employee–department assignments |
 | `GET /dept-manager/` | Department manager assignments |
 | `GET /salaries/` | Salary history |
 | `GET /titles/` | Job title history |
 
-Full CRUD (GET, POST, PUT, PATCH, DELETE) available on all endpoints.
+Full CRUD (GET, POST, PUT, PATCH, DELETE) available on all endpoints except `/employees/summary/` (read-only).
 
 ### Filtering examples
 
 ```
-/employees/?gender=M&hire_date__gte=1990-01-01&ordering=-hire_date
+/employees/?gender=M&hire_after=1990-01-01&ordering=-hire_date
+/employees/?first_name=ali&last_name=smith
+/employees/summary/?dept_name=Quality Management&title=Engineer
+/employees/summary/?search=Anoosh Birnbaum
 /salaries/?emp_no=10001&salary__gte=60000&salary__lte=100000
 /titles/?title__icontains=engineer
 /dept-emp/?dept_no=d005&from_date__gte=1995-01-01

@@ -1,4 +1,7 @@
 import django_filters
+from django.db.models import Q
+from django.db.models import CharField, TextField
+from django.db.models.fields.related import ForeignKey, OneToOneField
 from django_filters import rest_framework as filters
 
 
@@ -8,6 +11,13 @@ class BaseFilterSet(filters.FilterSet):
 
     Provides a standard foundation with helper methods for building
     common filter patterns consistently across endpoints.
+
+    ── Built-in filters ───────────────────────────────────────────────────
+    search      ?search=value
+                Case-insensitive substring match across all text fields
+                on the model and one level deep through FK / O2O relations.
+                Searches related text (e.g. dept_name via dept_no FK),
+                never raw ID columns.
 
     ── Usage ─────────────────────────────────────────────────────────────
     class EmployeeFilter(BaseFilterSet):
@@ -27,6 +37,39 @@ class BaseFilterSet(filters.FilterSet):
     in          ?field__in=a,b,c          (multiple values)
     isnull      ?field__isnull=true       (null check)
     """
+
+    search = django_filters.CharFilter(method='filter_search', label='Search')
+
+    def _search_lookups(self) -> list[str]:
+        """
+        Collect icontains lookup paths for every text field on the model
+        and one level deep through ForeignKey / OneToOneField relations.
+
+        Primary-key fields are excluded — they are ID columns, not
+        human-readable text.  Only CharField and TextField are included.
+        """
+        lookups: list[str] = []
+        for field in self._meta.model._meta.fields:
+            if isinstance(field, (CharField, TextField)) and not field.primary_key:
+                lookups.append(f'{field.name}__icontains')
+            elif isinstance(field, (ForeignKey, OneToOneField)):
+                for related_field in field.related_model._meta.fields:
+                    if isinstance(related_field, (CharField, TextField)) and not related_field.primary_key:
+                        lookups.append(f'{field.name}__{related_field.name}__icontains')
+        return lookups
+
+    def filter_search(self, queryset, name, value):
+        if not value:
+            return queryset
+        lookups = self._search_lookups()
+        if not lookups:
+            return queryset
+        for word in value.split():
+            word_query = Q()
+            for lookup in lookups:
+                word_query |= Q(**{lookup: word})
+            queryset = queryset.filter(word_query)
+        return queryset.distinct()
 
     class Meta:
         # Subclasses must define model and fields

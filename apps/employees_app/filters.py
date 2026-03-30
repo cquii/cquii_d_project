@@ -5,14 +5,17 @@ from .models import Departments, DeptEmp, DeptManager, Employees, Salaries, Titl
 
 class EmployeeFilter(BaseFilterSet):
     """
-    Filter for /employees/
+    Filter for /employees/ and /employees/summary/
 
     Query params:
-        ?first_name__icontains=ali
-        ?last_name__icontains=smith
+        ?first_name=ali
+        ?last_name=smith
         ?gender=M
-        ?hire_date__gte=1990-01-01&hire_date__lte=2000-12-31
-        ?birth_date__gte=1960-01-01
+        ?hire_after=1990-01-01&hire_before=2000-12-31
+        ?born_after=1960-01-01
+        ?dept_name=Quality Management   (summary endpoint)
+        ?title=Engineer                 (summary endpoint)
+        ?search=Anoosh Birnbaum         (matches any word across name, dept, title)
     """
     first_name  = django_filters.CharFilter(lookup_expr='icontains')
     last_name   = django_filters.CharFilter(lookup_expr='icontains')
@@ -20,6 +23,8 @@ class EmployeeFilter(BaseFilterSet):
     hire_before = django_filters.DateFilter(field_name='hire_date',  lookup_expr='lte')
     born_after  = django_filters.DateFilter(field_name='birth_date', lookup_expr='gte')
     born_before = django_filters.DateFilter(field_name='birth_date', lookup_expr='lte')
+    dept_name   = django_filters.CharFilter(field_name='deptemp__dept_no__dept_name', lookup_expr='icontains')
+    title       = django_filters.CharFilter(field_name='titles__title',               lookup_expr='icontains')
 
     class Meta:
         model  = Employees

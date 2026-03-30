@@ -2,7 +2,7 @@ from rest_framework.routers import DefaultRouter
 from utils.cls_views import BaseModelViewSet
 from .views import (
     DepartmentViewSet, DeptEmpViewSet, DeptManagerViewSet,
-    EmployeeViewSet, SalaryViewSet, TitleViewSet,
+    EmployeeViewSet, EmployeeSummaryViewSet, SalaryViewSet, TitleViewSet,
 )
 
 router = DefaultRouter()
@@ -32,11 +32,12 @@ def register_routes(routes: list[tuple[str, type[BaseModelViewSet]]]) -> list:
 
 urlpatterns = register_routes(
     [
-        ("employees",    EmployeeViewSet),
-        ("departments",  DepartmentViewSet),
-        ("dept-emp",     DeptEmpViewSet),
-        ("dept-manager", DeptManagerViewSet),
-        ("salaries",     SalaryViewSet),
-        ("titles",       TitleViewSet),
+        ("employees/summary", EmployeeSummaryViewSet),
+        ("employees",         EmployeeViewSet),
+        ("departments",       DepartmentViewSet),
+        ("dept-emp",          DeptEmpViewSet),
+        ("dept-manager",      DeptManagerViewSet),
+        ("salaries",          SalaryViewSet),
+        ("titles",            TitleViewSet),
     ]
 )
